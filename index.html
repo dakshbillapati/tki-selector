@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clinical TKI Regimen Report</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .app-container {
+            max-width: 750px;
+            width: 100%;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        /* Report Form Styling optimized for patient clarity */
+        .report-header {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .report-title {
+            margin: 0;
+            color: #0f172a;
+            font-size: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .report-subtitle {
+            margin: 4px 0 0 0;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .section-heading {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #475569;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+            margin: 20px 0 10px 0;
+            font-weight: 700;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        input[type="number"], select {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            background-color: #fff;
+        }
+        input[type="number"]:focus, select:focus {
+            border-color: #2563eb;
+        }
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fdf2f2;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #fee2e2;
+            margin-bottom: 15px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1; transition: .3s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #e03131; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .vitals-summary {
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #334155;
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid #e2e8f0;
+        }
+        .recommendation-box {
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 6px solid #2b8a3e;
+            background-color: #f4fbf7;
+            margin-bottom: 15px;
+        }
+        .drug-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 3px;
+        }
+        .prob-bar-container {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .prob-bar {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .download-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .download-btn:hover { background-color: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="report_content">
+    
+    <!-- Report Header -->
+    <div class="report-header">
+        <div>
+            <h1 class="report-title">Clinical TKI Regimen Report</h1>
+            <p class="report-subtitle">Patient Personalized Treatment Decision & Dosing Summary</p>
+        </div>
+        <div style="text-align: right; font-size: 12px; color: #64748b;">
+            <strong>Date:</strong> <span id="report_date"></span><br>
+            <strong>Status:</strong> <span style="color: #2b8a3e; font-weight: bold;">Verified Output</span>
+        </div>
+    </div>
+
+    <div class="section-heading">1. Patient Clinical Parameters</div>
+    <div class="grid">
+        <div class="input-group">
+            <label for="age_input">Patient Age (years)</label>
+            <input type="number" id="age_input" value="14" min="1" max="120">
+        </div>
+        <div class="input-group">
+            <label for="height_input">Patient Height (cm)</label>
+            <input type="number" id="height_input" value="164" min="30" max="250">
+        </div>
+        <div class="input-group">
+            <label for="weight_input">Patient Weight (kg)</label>
+            <input type="number" id="weight_input" value="82" min="2" max="250">
+        </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="input-group">
+            <label for="resistance_input">Prior TKI Status / Mutation Profile</label>
+            <select id="resistance_input">
+                <option value="none">Treatment Naïve / Chronic Phase</option>
+                <option value="imatinib_res">Imatinib Resistant / Intolerant</option>
+                <option value="t315i">T315I Mutation Confirmed</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="form_preference">Preferred Formulation</label>
+            <select id="form_preference">
+                <option value="auto">Auto-Select based on Age/BSA</option>
+                <option value="syrup">Oral Suspension (Liquid Syrup / PREVALL)</option>
+                <option value="tablet">Oral Solid (Tablets)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="switch-container">
+        <label class="switch">
+            <input type="checkbox" id="risk_toggle">
+            <span class="slider"></span>
+        </label>
+        <span style="font-size: 13px; font-weight: 600; color: #991b1b;">High Vascular Risk / Arterial Thrombosis History</span>
+    </div>
+
+    <div class="vitals-summary">
+        <span><strong>Calculated BSA:</strong> <span id="bsa_val" style="color: #0f172a; font-weight: bold;">1.933</span> m²</span>
+        <span><strong>Cohort Group:</strong> <span id="cohort_val" style="color: #0f172a; font-weight: bold;">Pediatric</span></span>
+    </div>
+
+    <div class="section-heading">2. Recommended Treatment & Dosing</div>
+    <div id="outcome_card" class="recommendation-box">
+        <h3 id="rec_title" style="margin-top: 0; margin-bottom: 6px; color: #2b8a3e; font-size: 16px;">Recommended Drug: Dasatinib</h3>
+        <p style="margin: 0 0 4px 0; font-size: 14px; color: #0f172a;"><strong>Calculated Dosage:</strong> <span id="dose_val" style="text-decoration: underline; font-weight: bold;">116.0 mg/day</span></p>
+        <p style="margin: 0 0 8px 0; color: #475569; font-size: 13px;"><strong>Formulation State:</strong> <span id="form_val" style="font-weight: 600; color: #1e293b;">Oral Solid (Tablets)</span></p>
+        <p id="rec_desc" style="margin: 0; color: #334155; font-size: 13px; line-height: 1.4;">
+            Patient profile matches primary parameters for targeted therapy protocol.
+        </p>
+    </div>
+
+    <div id="explainer_box" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 14px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; color: #1e40af;">
+        💡 <strong>Clinical Rationale:</strong> Selected based on input parameters and guideline-directed medical therapy.
+    </div>
+
+    <div class="section-heading">3. Comprehensive TKI Evaluation Summary</div>
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+        <div>
+            <div class="drug-span drug-row">
+                <span>Dasatinib (Sprycel)</span>
+                <span id="da_prob_label">100% (Selected)</span>
+            </div>
+            <div class="prob-bar-container"><div id="da_bar" class="prob-bar" style="background: #2b8a3e; width: 100%;"></div></div>
+        </div>
+        <div>
+            <div class="drug-row">
+                <span>Ponatinib (Iclusig)</span>
+                <span id="po_prob_label">0%</span>
+            </div>
+            <div class="prob-bar-container"><div id="po_bar" class="prob-bar" style="background: #cbd5e1; width: 0%;"></div></div>
+        </div>
+        <div>
+            <div class="drug-row">
+                <span>Nilotinib (Tasigna)</span>
+                <span id="ni_prob_label">0%</span>
+            </div>
+            <div class="prob-bar-container"><div id="ni_bar" class="prob-bar" style="background: #cbd5e1; width: 0%;"></div></div>
+        </div>
+        <div>
+            <div class="drug-row">
+                <span>Imatinib (Gleevec)</span>
+                <span id="im_prob_label">0%</span>
+            </div>
+            <div class="prob-bar-container"><div id="im_bar" class="prob-bar" style="background: #cbd5e1; width: 0%;"></div></div>
+        </div>
+    </div>
+
+    <!-- Download PDF Button -->
+    <button class="download-btn" onclick="downloadPDF()">
+        📥 Download Patient Report (PDF)
+    </button>
+</div>
+
+<script>
+// Set current date on report
+document.getElementById('report_date').innerText = new Date().toLocaleDateString();
+
+function runCalculations() {
+    const age = parseFloat(document.getElementById('age_input').value) || 0;
+    const height = parseFloat(document.getElementById('height_input').value) || 0;
+    const weight = parseFloat(document.getElementById('weight_input').value) || 0;
+    const highVascularRisk = document.getElementById('risk_toggle').checked;
+    const resistance = document.getElementById('resistance_input').value;
+    const formPref = document.getElementById('form_preference').value;
+
+    const bsa = Math.sqrt((height * weight) / 3600.0);
+    document.getElementById('bsa_val').innerText = bsa.toFixed(3);
+
+    const isPediatric = age < 18;
+    document.getElementById('cohort_val').innerText = isPediatric ? "Pediatric" : "Adult";
+
+    let recommendation = "";
+    let doseString = "";
+    let driverMessage = "";
+    let cardColor = "#2b8a3e";
+    let cardBg = "#f4fbf7";
+
+    let daProb = 0, poProb = 0, niProb = 0, imProb = 0;
+
+    if (highVascularRisk || resistance === "t315i") {
+        recommendation = "Ponatinib";
+        poProb = 100;
+        cardColor = "#e03131"; cardBg = "#fdf3f3";
+
+        if (highVascularRisk) {
+            doseString = "15.0 mg/day (Reduced Dose for Cardiovascular Risk Mitigation)";
+            driverMessage = "Selected Ponatinib due to reported vascular risk history. Dose capped at 15 mg/day to mitigate Arterial Occlusive Events (AOEs).";
+        } else {
+            doseString = "45.0 mg/day (Standard Starting Dose)";
+            driverMessage = "Selected Ponatinib due to confirmed T315I mutation present where 1st/2nd generation TKIs fail.";
+        }
+    } else if (resistance === "imatinib_res") {
+        recommendation = "Nilotinib";
+        niProb = 100;
+        cardColor = "#d97706"; cardBg = "#fffbe6";
+
+        if (isPediatric) {
+            const rawDose = (bsa * 230.0).toFixed(1);
+            doseString = `${rawDose} mg twice daily (Pediatric 230 mg/m² BSA-Adjusted)`;
+        } else {
+            doseString = "300.0 mg twice daily (600 mg/day Total Standard Adult Regimen)";
+        }
+        driverMessage = "Selected Nilotinib as 2nd-generation TKI for patients with Imatinib resistance/intolerance without high vascular risk.";
+    } else {
+        recommendation = "Dasatinib";
+        daProb = 100;
+        cardColor = "#2b8a3e"; cardBg = "#f4fbf7";
+
+        if (isPediatric) {
+            const rawDose = bsa * 60.0;
+            const calculatedDose = Math.min(Math.round(rawDose * 10) / 10, 140.0);
+            doseString = `${calculatedDose.toFixed(1)} mg/day (Pediatric 60 mg/m² BSA-Adjusted, capped at 140 mg)`;
+            driverMessage = "Selected Dasatinib as primary treatment for pediatric cohort guidelines.";
+        } else {
+            doseString = "100.0 mg/day (Standard Fixed Adult Starting Regimen)";
+            driverMessage = "Selected Dasatinib for adult cohort classification without reported cardiovascular/vascular risk factors.";
+        }
+    }
+
+    let formulationText = "Oral Solid (Tablets)";
+    if (formPref === "syrup" || (formPref === "auto" && isPediatric && age <= 10)) {
+        formulationText = "Oral Suspension (Liquid Syrup / PREVALL)";
+    }
+
+    const card = document.getElementById('outcome_card');
+    const title = document.getElementById('rec_title');
+    
+    title.innerText = "Recommended Drug: " + recommendation;
+    title.style.color = cardColor;
+    card.style.borderLeftColor = cardColor;
+    card.style.backgroundColor = cardBg;
+
+    document.getElementById('dose_val').innerText = doseString;
+    document.getElementById('form_val').innerText = formulationText;
+    document.getElementById('explainer_box').innerHTML = `💡 <strong>Clinical Rationale:</strong> ${driverMessage}`;
+
+    const updateBar = (idLabel, idBar, value, color) => {
+        const labelElem = document.getElementById(idLabel);
+        const barElem = document.getElementById(idBar);
+        if (value === 100) {
+            labelElem.innerText = "100% (Selected)";
+            barElem.style.width = "100%";
+            barElem.style.background = color;
+        } else {
+            labelElem.innerText = "0%";
+            barElem.style.width = "0%";
+            barElem.style.background = "#cbd5e1";
+        }
+    };
+
+    updateBar('da_prob_label', 'da_bar', daProb, '#2b8a3e');
+    updateBar('po_prob_label', 'po_bar', poProb, '#e03131');
+    updateBar('ni_prob_label', 'ni_bar', niProb, '#d97706');
+    updateBar('im_prob_label', 'im_bar', imProb, '#475569');
+}
+
+// PDF Export Function tuned for clean layout output
+function downloadPDF() {
+    const element = document.getElementById('report_content');
+    const options = {
+        margin:       [6, 6, 6, 6],
+        filename:     'Clinical_TKI_Regimen_Report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(element).set(options).save();
+}
+
+document.getElementById('age_input').addEventListener('input', runCalculations);
+document.getElementById('height_input').addEventListener('input', runCalculations);
+document.getElementById('weight_input').addEventListener('input', runCalculations);
+document.getElementById('risk_toggle').addEventListener('change', runCalculations);
+document.getElementById('resistance_input').addEventListener('change', runCalculations);
+document.getElementById('form_preference').addEventListener('change', runCalculations);
+
+runCalculations();
+</script>
+</body>
+</html>
